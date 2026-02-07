@@ -31,9 +31,12 @@ func Add(paths []string) error {
 	return index.WriteIndex(root, idx)
 }
 
+var absFunc = filepath.Abs
+var relFunc = filepath.Rel
+
 func addPath(root string, idx *index.Index, p string) error {
 	// Make path relative to repo root
-	absPath, err := filepath.Abs(p)
+	absPath, err := absFunc(p)
 	if err != nil {
 		return err
 	}
@@ -51,7 +54,7 @@ func addPath(root string, idx *index.Index, p string) error {
 		return addDir(root, idx, absPath)
 	}
 
-	return addFile(root, idx, absPath)
+	return addFile(root, idx, absPath, info)
 }
 
 func addDir(root string, idx *index.Index, dirPath string) error {
@@ -65,12 +68,12 @@ func addDir(root string, idx *index.Index, dirPath string) error {
 			}
 			return nil
 		}
-		return addFile(root, idx, path)
+		return addFile(root, idx, path, info)
 	})
 }
 
-func addFile(root string, idx *index.Index, absPath string) error {
-	relPath, err := filepath.Rel(root, absPath)
+func addFile(root string, idx *index.Index, absPath string, info os.FileInfo) error {
+	relPath, err := relFunc(root, absPath)
 	if err != nil {
 		return err
 	}
@@ -79,11 +82,6 @@ func addFile(root string, idx *index.Index, absPath string) error {
 	// Skip .gogit directory
 	if strings.HasPrefix(relPath, repo.GogitDir) {
 		return nil
-	}
-
-	info, err := os.Stat(absPath)
-	if err != nil {
-		return err
 	}
 
 	content, err := os.ReadFile(absPath)

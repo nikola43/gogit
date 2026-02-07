@@ -8,8 +8,11 @@ import (
 	"gogit/repo"
 )
 
+var cmdGetwd = os.Getwd
+var cmdWriteFile = os.WriteFile
+
 func Init() error {
-	wd, err := os.Getwd()
+	wd, err := cmdGetwd()
 	if err != nil {
 		return err
 	}
@@ -34,7 +37,7 @@ func initAt(wd string) error {
 	}
 
 	headContent := "ref: refs/heads/main\n"
-	if err := os.WriteFile(filepath.Join(gogitDir, "HEAD"), []byte(headContent), 0644); err != nil {
+	if err := cmdWriteFile(filepath.Join(gogitDir, "HEAD"), []byte(headContent), 0644); err != nil {
 		return err
 	}
 

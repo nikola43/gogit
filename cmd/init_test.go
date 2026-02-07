@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -109,23 +110,34 @@ func TestInitAt_MkdirAllError(t *testing.T) {
 
 func TestInitAt_WriteFileError(t *testing.T) {
 	dir := t.TempDir()
-	// Pre-create the .gogit structure, then put a directory where HEAD should be
-	gogitDir := filepath.Join(dir, repo.GogitDir)
-	// Don't create .gogit yet (so Stat fails), but make parent writable
-	// We need MkdirAll to succeed but WriteFile to fail
-	// Create a subdirectory, then inside it create .gogit dirs + HEAD as dir
-	sub := filepath.Join(dir, "sub")
-	os.MkdirAll(sub, 0755)
-	subGogit := filepath.Join(sub, repo.GogitDir)
-	os.MkdirAll(filepath.Join(subGogit, "objects"), 0755)
-	os.MkdirAll(filepath.Join(subGogit, "refs", "heads"), 0755)
-	os.MkdirAll(filepath.Join(subGogit, "HEAD", "blocker"), 0755)
-	defer os.RemoveAll(filepath.Join(subGogit, "HEAD"))
-	// Remove the gogit dir so Stat fails, but leave HEAD as dir
-	// Problem: if we remove .gogit, we remove HEAD too
-	// Alternative: don't remove. Stat will succeed → "already exists"
-	// Instead, just use the approach from existing tests: this path requires TOCTOU
-	// Accept this as a thin wrapper line
-	_ = gogitDir
+
+	// Mock cmdWriteFile to fail
+	origWF := cmdWriteFile
+	cmdWriteFile = func(name string, data []byte, perm os.FileMode) error {
+		return fmt.Errorf("write file failed")
+	}
+	defer func() { cmdWriteFile = origWF }()
+
+	err := initAt(dir)
+	if err == nil {
+		t.Fatal("expected error when WriteFile fails")
+	}
+	if err.Error() != "write file failed" {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestInit_GetwdError(t *testing.T) {
+	origFn := cmdGetwd
+	cmdGetwd = func() (string, error) { return "", fmt.Errorf("getwd failed") }
+	defer func() { cmdGetwd = origFn }()
+
+	err := Init()
+	if err == nil {
+		t.Fatal("expected error when Getwd fails")
+	}
+	if err.Error() != "getwd failed" {
+		t.Errorf("unexpected error: %v", err)
+	}
 }
 

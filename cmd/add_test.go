@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -245,6 +246,43 @@ func TestAdd_WriteBlobError(t *testing.T) {
 	err := Add([]string{"file.txt"})
 	if err == nil {
 		t.Fatal("expected error when blob write fails")
+	}
+}
+
+func TestAddPath_AbsError(t *testing.T) {
+	dir := setupTestRepo(t)
+
+	origFn := absFunc
+	absFunc = func(path string) (string, error) { return "", fmt.Errorf("abs failed") }
+	defer func() { absFunc = origFn }()
+
+	idx, _ := index.ReadIndex(dir)
+	err := addPath(dir, idx, "file.txt")
+	if err == nil {
+		t.Fatal("expected error when Abs fails")
+	}
+	if err.Error() != "abs failed" {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestAddFile_RelError(t *testing.T) {
+	dir := setupTestRepo(t)
+	f := filepath.Join(dir, "file.txt")
+	os.WriteFile(f, []byte("content"), 0644)
+	info, _ := os.Stat(f)
+
+	origFn := relFunc
+	relFunc = func(basepath, targpath string) (string, error) { return "", fmt.Errorf("rel failed") }
+	defer func() { relFunc = origFn }()
+
+	idx, _ := index.ReadIndex(dir)
+	err := addFile(dir, idx, f, info)
+	if err == nil {
+		t.Fatal("expected error when Rel fails")
+	}
+	if err.Error() != "rel failed" {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 

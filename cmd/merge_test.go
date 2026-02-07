@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -881,6 +882,39 @@ func TestFileLevelMerge_WriteCommitError(t *testing.T) {
 	err := fileLevelMerge(dir, "main", "feature", mainHash, featHash)
 	if err == nil {
 		t.Fatal("expected error when final WriteRef fails")
+	}
+}
+
+func TestFileLevelMerge_WriteCommitFnError(t *testing.T) {
+	dir := setupTestRepoWithCommit(t)
+	Branch("feature")
+
+	os.WriteFile(filepath.Join(dir, "m.txt"), []byte("m"), 0644)
+	Add([]string{"m.txt"})
+	Commit("main")
+	mainHash, _ := refs.ResolveHead(dir)
+
+	Checkout("feature")
+	os.WriteFile(filepath.Join(dir, "f.txt"), []byte("f"), 0644)
+	Add([]string{"f.txt"})
+	Commit("feat")
+	featHash, _ := refs.ResolveHead(dir)
+
+	Checkout("main")
+
+	// Mock writeCommitFn to fail
+	origFn := writeCommitFn
+	writeCommitFn = func(root, treeHash string, parents []string, msg string) (string, error) {
+		return "", fmt.Errorf("write commit failed")
+	}
+	defer func() { writeCommitFn = origFn }()
+
+	err := fileLevelMerge(dir, "main", "feature", mainHash, featHash)
+	if err == nil {
+		t.Fatal("expected error when writeCommitFn fails in fileLevelMerge")
+	}
+	if err.Error() != "write commit failed" {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 

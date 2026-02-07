@@ -205,3 +205,27 @@ func TestUsage(t *testing.T) {
 	// Just make sure it doesn't panic
 	usage()
 }
+
+func TestMainFunction(t *testing.T) {
+	dir := t.TempDir()
+	orig, _ := os.Getwd()
+	t.Cleanup(func() { os.Chdir(orig) })
+	os.Chdir(dir)
+
+	// Mock osExit to capture the exit code instead of actually exiting
+	var exitCode int
+	origExit := osExit
+	osExit = func(code int) { exitCode = code }
+	defer func() { osExit = origExit }()
+
+	// Override os.Args to simulate "gogit" with no subcommand (usage error → code 1)
+	origArgs := os.Args
+	os.Args = []string{"gogit"}
+	defer func() { os.Args = origArgs }()
+
+	main()
+
+	if exitCode != 1 {
+		t.Errorf("expected exit code 1, got %d", exitCode)
+	}
+}

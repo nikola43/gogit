@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -138,5 +139,19 @@ func TestFindFrom_NoRepo(t *testing.T) {
 	_, err := FindFrom(dir)
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestFind_GetwdError(t *testing.T) {
+	origFn := osGetwd
+	osGetwd = func() (string, error) { return "", fmt.Errorf("getwd failed") }
+	defer func() { osGetwd = origFn }()
+
+	_, err := Find()
+	if err == nil {
+		t.Fatal("expected error when Getwd fails")
+	}
+	if err.Error() != "getwd failed" {
+		t.Errorf("unexpected error: %v", err)
 	}
 }

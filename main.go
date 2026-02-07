@@ -7,8 +7,10 @@ import (
 	"gogit/cmd"
 )
 
+var osExit = os.Exit
+
 func main() {
-	os.Exit(run(os.Args))
+	osExit(run(os.Args))
 }
 
 func run(args []string) int {

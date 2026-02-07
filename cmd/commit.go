@@ -50,9 +50,11 @@ func Commit(message string) error {
 	return nil
 }
 
+var writeCommitFn = object.WriteCommit
+
 func writeCommitAndUpdateRef(root, treeHash string, parents []string, message string) (string, error) {
 	// Create commit object
-	commitHash, err := object.WriteCommit(root, treeHash, parents, message)
+	commitHash, err := writeCommitFn(root, treeHash, parents, message)
 	if err != nil {
 		return "", err
 	}

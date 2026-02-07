@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -329,6 +330,36 @@ func TestWriteCommitAndUpdateRef_CurrentBranchError(t *testing.T) {
 	_, err := writeCommitAndUpdateRef(dir, treeHash, nil, "will fail")
 	if err == nil {
 		t.Fatal("expected error when CurrentBranch fails")
+	}
+}
+
+func TestCommit_WriteCommitFnError(t *testing.T) {
+	dir := setupTestRepo(t)
+	t.Setenv("GOGIT_AUTHOR_NAME", "Test")
+	t.Setenv("GOGIT_AUTHOR_EMAIL", "test@test.com")
+
+	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("content"), 0644)
+	Add([]string{"file.txt"})
+
+	// First commit succeeds (so HEAD is set up)
+	Commit("first")
+
+	os.WriteFile(filepath.Join(dir, "file2.txt"), []byte("more"), 0644)
+	Add([]string{"file2.txt"})
+
+	// Mock writeCommitFn to fail
+	origFn := writeCommitFn
+	writeCommitFn = func(root, treeHash string, parents []string, msg string) (string, error) {
+		return "", fmt.Errorf("write commit failed")
+	}
+	defer func() { writeCommitFn = origFn }()
+
+	err := Commit("second")
+	if err == nil {
+		t.Fatal("expected error when writeCommitFn fails")
+	}
+	if err.Error() != "write commit failed" {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 

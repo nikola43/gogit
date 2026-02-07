@@ -8,9 +8,11 @@ import (
 
 const GogitDir = ".gogit"
 
+var osGetwd = os.Getwd
+
 // Find walks up from the current directory to find a .gogit repository root.
 func Find() (string, error) {
-	dir, err := os.Getwd()
+	dir, err := osGetwd()
 	if err != nil {
 		return "", err
 	}

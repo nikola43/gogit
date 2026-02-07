@@ -302,7 +302,7 @@ func fileLevelMerge(root, currentBranch, targetBranch, currentHash, targetHash s
 
 	parents := []string{currentHash, targetHash}
 	message := fmt.Sprintf("Merge branch '%s' into %s", targetBranch, currentBranch)
-	commitHash, err := object.WriteCommit(root, treeHash, parents, message)
+	commitHash, err := writeCommitFn(root, treeHash, parents, message)
 	if err != nil {
 		return err
 	}
